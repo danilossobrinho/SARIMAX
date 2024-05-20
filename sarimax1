@@ -1,0 +1,82 @@
+# -*- coding: utf-8 -*-
+"""
+Spyder Editor
+
+This is a temporary script file.
+"""
+
+#Tratamento dos dados
+pip install pmdarima
+import pmdarima as pm
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('C:/Users/Danil/OneDrive/Documentos/Python Scripts/Arima/Arima/market.csv', decimal= '.')
+df = df.iloc[:, [0,3]]
+df = df[len(df)-1000:]
+df.Dade = pd.to_datetime(df.Date)
+df.set_index('Date', inplace = True)
+df.head()
+
+
+#Definição do valor P para nosso modelo autoregressivo
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+plot_acf(df.number_sold)
+plot_pacf(df.number_sold)
+plt.show()
+
+#Construção do modelo
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+model = SARIMAX(df['number_sold'], order=(2, 0, 0))
+results = model.fit()
+print(results.summary())
+
+#Criando baseTrain/test
+train_size = int(len(df)*2/3)
+
+train_df = df.number_sold[:train_size]
+test_df = df.number_sold[train_size:]
+
+train_df = train_df.to_frame(name='number_sold')
+test_df = test_df.to_frame(name='number_sold')
+
+#plotando eles
+plt.plot(train_df)
+plt.plot(test_df)
+
+#Encontrando o melhor parametro
+modelo_auto = pm.auto_arima(df, seasonal=True, m=12)
+print("Melhores parâmetros encontrados:", modelo_auto.order)
+
+#treinando o conjunto de treinamento
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+model_train = SARIMAX(train_df['number_sold'], order=(5, 1, 2), seasonal_order=(1, 1, 1, 12))
+result_train = model_train.fit()
+print(result_train.summary())
+
+forecast = result_train.get_forecast(steps= len(test_df))
+previsao = forecast.predicted_mean
+plt.plot(previsao)
+
+#plotando com o conjunto de treinamento, teste e previsão
+plt.figure(figsize=(20, 6))
+plt.plot(train_df)
+plt.plot(previsao)
+plt.plot(test_df)
+
+
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+model_train = SARIMAX(train_df['number_sold'], order=(5, 1, 2), seasonal_order=(1, 1, 1, 12))
+result_train = model_train.fit()
+start = len(train_df)
+end = len(train_df)+ len(test_df)-1
+prediction = result_train.predict(start, end).rename('Prediction')
+ax = test_df['number_sold'].plot(legend=True, figsize=(20,8))
+prediction.plot(legend=True)
+
+
+
+
+print(result_train.summary())
+prediction = prediction.to_frame(name='number_sold')
+previsao = previsao.to_frame(name='number_sold')

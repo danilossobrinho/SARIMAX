@@ -1,0 +1,22 @@
+from pgmpy as pgm
+from pgmpy.estimators import PC
+from pgmpy.models import BayesianModel
+from pgmpy.estimators import BayesianEstimators
+
+est = PC(data=df)
+modelo_estimado = est.estimate(variant='stable', max_cond_vars=2)
+
+print(modelo_estimado.edges())
+
+modelo = BayesianModel(modelo_estimado.edges())
+
+modelo.fit(df)
+
+modelo.get_cpds()
+
+from gpmpy.inference import viriableElimination
+
+Infer = viriableElimination(modelo)
+
+d_dist = infer.query(['Classificação'])
+print(d_dist)
